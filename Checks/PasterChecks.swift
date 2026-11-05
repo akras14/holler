@@ -84,9 +84,15 @@ func historyChecks(_ t: Checker) {
         t.expect(history.items, ["second", "first"], "newest first, empty transcripts skipped")
 
         for i in 1...12 { history.add("item \(i)") }
-        t.expect(history.items.count, 10, "keeps the last ten")
-        t.expect(history.items.first, "item 12")
+        t.expect(history.items, ["item 12", "item 11", "item 10", "item 9", "item 8"], "keeps the last five")
 
         t.expect(History(defaults: defaults).items, history.items, "survives a relaunch")
+
+        defaults.set((1...10).map { "old \($0)" }, forKey: History.key)
+        t.expect(History(defaults: defaults).items.count, 5, "a longer list saved by an older version is trimmed")
+
+        history.clear()
+        t.expect(history.items, [], "Clear Recent empties it")
+        t.expect(History(defaults: defaults).items, [], "and it stays empty after a relaunch")
     }
 }

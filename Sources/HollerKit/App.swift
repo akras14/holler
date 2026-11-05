@@ -44,6 +44,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             self?.refresh()
         }
 
+        statusMenu.onClearRecent = { [weak self] in
+            self?.history.clear()
+            self?.refresh()
+        }
+
         recorder.deviceUID = UserDefaults.standard.string(forKey: Self.microphoneKey)
         recorder.onLevel = { [weak self] in self?.indicator.level($0) }
         dictationKey.onAction = { [weak self] in self?.dictation.handle($0) }

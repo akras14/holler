@@ -22,6 +22,7 @@ public final class StatusMenu: NSObject {
     public var onSelectMicrophone: (String?) -> Void = { _ in }
     public var onOpenPermission: (Permission) -> Void = { _ in }
     public var onToggleLaunchAtLogin: () -> Void = {}
+    public var onClearRecent: () -> Void = {}
     private let pasteboard: NSPasteboard
 
     public init(pasteboard: NSPasteboard) {
@@ -57,6 +58,9 @@ public final class StatusMenu: NSObject {
             item.representedObject = text
             item.toolTip = text
             menu.addItem(item)
+        }
+        if !model.recent.isEmpty {
+            menu.addItem(action("Clear Recent", #selector(clearRecent)))
         }
         menu.addItem(.separator())
 
@@ -137,4 +141,6 @@ public final class StatusMenu: NSObject {
     }
 
     @objc private func toggleLaunchAtLogin() { onToggleLaunchAtLogin() }
+
+    @objc private func clearRecent() { onClearRecent() }
 }

@@ -17,7 +17,7 @@ Nothing leaves your Mac.
   characters, ⌘⌥…) records nothing, and neither does an accidental double tap.
 - **Your clipboard is put back** after the paste, and the dictated text is marked
   transient so clipboard managers skip it.
-- **The menu bar icon** shows the last ten transcripts (click one to copy it again),
+- **The menu bar icon** shows the last five transcripts (click one to copy it again, or clear them),
   lets you pick a microphone, and has Launch at Login.
 
 The first launch asks for two permissions: **Microphone**, and **Accessibility**, which
@@ -94,7 +94,7 @@ matters on your own Mac; it doesn't make builds trusted anywhere else.
 | `Sources/HollerKit/Transcriber.swift` | Finding, downloading and running the Parakeet model |
 | `Sources/HollerKit/Dictation.swift` | Key to microphone to transcript to paste |
 | `Sources/HollerKit/Paster.swift` | Pasting into the frontmost app and putting the clipboard back |
-| `Sources/HollerKit/History.swift` | The last ten transcripts |
+| `Sources/HollerKit/History.swift` | The last five transcripts |
 | `Sources/HollerKit/Indicator.swift` | The floating pill shown while recording and transcribing |
 | `Sources/HollerKit/StatusMenu.swift` | The menu bar menu |
 | `Sources/Holler/main.swift` | Starts the app (the code lives in `HollerKit`) |

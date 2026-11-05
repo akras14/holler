@@ -38,6 +38,8 @@ func menuChecks(_ t: Checker) {
     t.group("Menu") {
         let board = NSPasteboard(name: NSPasteboard.Name("holler-check-\(UUID().uuidString)"))
         let menu = StatusMenu(pasteboard: board)
+        var cleared = 0
+        menu.onClearRecent = { cleared += 1 }
         var model = MenuModel()
         model.state = .ready
         model.recent = ["Short one.", String(repeating: "word ", count: 30) + "end."]
@@ -46,7 +48,8 @@ func menuChecks(_ t: Checker) {
 
         t.expect(titles(menu.menu), [
             "Tap Right Option to dictate", "—",
-            "Recent", "Short one.", String(repeating: "word ", count: 11).trimmingCharacters(in: .whitespaces) + "…", "—",
+            "Recent", "Short one.", String(repeating: "word ", count: 11).trimmingCharacters(in: .whitespaces) + "…",
+            "Clear Recent", "—",
             "Microphone", "Launch at Login", "—",
             "Quit Holler",
         ])
@@ -57,6 +60,12 @@ func menuChecks(_ t: Checker) {
         t.expect(long.toolTip, model.recent[1], "the full text is in the tooltip")
         menu.menu.performActionForItem(at: 4)
         t.expect(board.string(forType: .string), model.recent[1], "clicking a recent transcript copies all of it")
+
+        menu.menu.performActionForItem(at: menu.menu.indexOfItem(withTitle: "Clear Recent"))
+        t.expect(cleared, 1, "Clear Recent asks for the history to be cleared")
+        model.recent = []
+        menu.model = model
+        t.expect(item(menu.menu, "Clear Recent") == nil, true, "nothing to clear, so no Clear Recent")
     }
 
     t.group("Menu: microphone") {

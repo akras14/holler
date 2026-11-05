@@ -12,6 +12,7 @@ MainActor.assumeIsolated {
     let transcriber = Transcriber()
     transcriberChecks(t, transcriber: transcriber)
     recorderChecks(t, transcriber: transcriber)
+    dictationChecks(t, transcriber: transcriber)
 
     print(t.failures == 0 ? "✔ \(t.count) checks passed" : "✘ \(t.failures) of \(t.count) checks failed")
     exit(t.failures == 0 ? 0 : 1)

@@ -17,7 +17,7 @@ cp Info.plist "$APP/Contents/Info.plist"
 for bundle in "$BIN_DIR"/*.bundle; do
     [ -e "$bundle" ] && cp -R "$bundle" "$APP/Contents/Resources/"
 done
-cp LICENSE "$APP/Contents/Resources/"
+cp LICENSE NOTICE "$APP/Contents/Resources/"
 
 # Accessibility and Microphone grants are keyed to the signature. An ad-hoc signature
 # changes with every build, so macOS would silently drop the grants after each rebuild.

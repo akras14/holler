@@ -1,0 +1,33 @@
+Holler
+Copyright (c) 2026 Alex Kras
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+--------------------------------------------------------------------------------
+Third-party components
+
+Holler links or downloads the following third-party software and models. Each
+remains under its own license.
+
+================================================================================
+FluidAudio 0.18.2 (linked into the Holler binary)
+https://github.com/FluidInference/FluidAudio
+================================================================================
+
+    Copyright FluidInference.
+    Licensed under the Apache License, Version 2.0, the same license as Holler;
+    the full text is in LICENSE.
+
+    Holler builds FluidAudio with no package traits, so its text-to-speech,
+    diarization and text normalization components, and the third-party code
+    they carry, are not included.
+
+================================================================================
+Parakeet TDT 0.6B v2, Core ML conversion (downloaded on first launch, not bundled)
+https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2
+https://huggingface.co/FluidInference/parakeet-tdt-0.6b-v2-coreml
+================================================================================
+
+    Model by NVIDIA, converted to Core ML by FluidInference.
+    Licensed under the Creative Commons Attribution 4.0 International License
+    (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/

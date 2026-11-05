@@ -80,3 +80,37 @@ already have, pass its name: `LOCAL_SIGN_NAME="My Cert" ./build.sh`.
 
 The same certificate works for [Lightdown](https://github.com/akras14/lightdown). It only
 matters on your own Mac; it doesn't make builds trusted anywhere else.
+
+## Project layout
+
+| Path | What it does |
+|------|--------------|
+| `Sources/HollerKit/App.swift` | App startup: menu bar icon, permissions, wiring the pieces together |
+| `Sources/HollerKit/PushToTalk.swift` | Right Option presses to start, finish or cancel, ignoring taps and shortcuts |
+| `Sources/HollerKit/KeyMonitor.swift` | Key events from every app, passed to push to talk |
+| `Sources/HollerKit/Recorder.swift` | Microphone capture, converted to 16 kHz mono, and the input level |
+| `Sources/HollerKit/Microphones.swift` | The list of input devices |
+| `Sources/HollerKit/Transcriber.swift` | Finding, downloading and running the Parakeet model |
+| `Sources/HollerKit/Dictation.swift` | Key to microphone to transcript to paste |
+| `Sources/HollerKit/Paster.swift` | Pasting into the frontmost app and putting the clipboard back |
+| `Sources/HollerKit/History.swift` | The last ten transcripts |
+| `Sources/HollerKit/Indicator.swift` | The floating pill shown while recording and transcribing |
+| `Sources/HollerKit/StatusMenu.swift` | The menu bar menu |
+| `Sources/Holler/main.swift` | Starts the app (the code lives in `HollerKit`) |
+| `Checks/` | Test suite |
+| `scripts/make-icon.swift` | Draws `Resources/AppIcon.icns` |
+
+## Third-party code
+
+Fetched by Swift Package Manager when you build:
+
+- [FluidAudio](https://github.com/FluidInference/FluidAudio) 0.18.2: Apache 2.0
+
+Downloaded on first launch, unless FluidVoice already has a copy:
+
+- [Parakeet TDT 0.6B v2](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) by NVIDIA, in
+  [FluidInference's Core ML conversion](https://huggingface.co/FluidInference/parakeet-tdt-0.6b-v2-coreml): CC BY 4.0
+
+## License
+
+Holler is licensed under the [Apache License 2.0](LICENSE). Third-party notices are in [NOTICE](NOTICE).

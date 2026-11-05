@@ -36,37 +36,44 @@ func transcriberChecks(_ t: Checker, transcriber: Transcriber) {
     }
 }
 
-/// A models folder holding fake Parakeet folders with the given names.
-func fakeModels(_ folders: [String]) -> URL {
-    let models = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-    for folder in folders {
-        for item in ["Preprocessor.mlmodelc", "Encoder.mlmodelc", "Decoder.mlmodelc", "JointDecision.mlmodelc"] {
-            try! FileManager.default.createDirectory(
-                at: models.appendingPathComponent(folder).appendingPathComponent(item),
-                withIntermediateDirectories: true)
-        }
-        try! "{}".write(to: models.appendingPathComponent(folder).appendingPathComponent("parakeet_vocab.json"),
-                        atomically: true, encoding: .utf8)
+/// A fake complete Parakeet model folder.
+func fakeModel() -> URL {
+    let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    for item in ["Preprocessor.mlmodelc", "Encoder.mlmodelc", "Decoder.mlmodelc", "JointDecision.mlmodelc"] {
+        try! FileManager.default.createDirectory(at: folder.appendingPathComponent(item),
+                                                withIntermediateDirectories: true)
     }
-    return models
+    try! "{}".write(to: folder.appendingPathComponent("parakeet_vocab.json"), atomically: true, encoding: .utf8)
+    return folder
 }
 
 @MainActor
 func modelFolderChecks(_ t: Checker) {
     t.group("Model folder") {
-        let fluidVoice = fakeModels(["parakeet-tdt-0.6b-v2-coreml"])
-        t.expect(Transcriber.localModelFolder(in: fluidVoice)?.lastPathComponent,
-                 "parakeet-tdt-0.6b-v2-coreml", "reuses the copy FluidVoice downloaded")
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        t.expect(Transcriber.ownFolder.path,
+                 support.appendingPathComponent("Holler/Models/parakeet-tdt-0.6b-v2").path,
+                 "downloads go in Holler's own folder")
+        t.expect(Transcriber.candidateFolders.map(\.path), [
+            Transcriber.ownFolder.path,
+            support.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v2-coreml").path,
+            support.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v2").path,
+        ], "Holler's copy first, then FluidVoice's")
 
-        let current = fakeModels(["parakeet-tdt-0.6b-v2"])
-        t.expect(Transcriber.localModelFolder(in: current)?.lastPathComponent,
-                 "parakeet-tdt-0.6b-v2", "uses the folder current FluidAudio downloads to")
+        let first = fakeModel(), second = fakeModel()
+        t.expect(Transcriber.firstComplete([first, second]), first, "the first complete copy wins")
 
-        let partial = fakeModels(["parakeet-tdt-0.6b-v2-coreml"])
-        try? FileManager.default.removeItem(
-            at: partial.appendingPathComponent("parakeet-tdt-0.6b-v2-coreml/Encoder.mlmodelc"))
-        t.expect(Transcriber.localModelFolder(in: partial), nil, "skips an incomplete download")
+        let missingPiece = fakeModel()
+        try! FileManager.default.removeItem(at: missingPiece.appendingPathComponent("Encoder.mlmodelc"))
+        t.expect(Transcriber.firstComplete([missingPiece, second]), second, "a copy missing a piece is skipped")
 
-        t.expect(Transcriber.localModelFolder(in: fakeModels([])), nil, "nothing downloaded yet")
+        // An interrupted download leaves the folders in place with `.partial` weights.
+        let interrupted = fakeModel()
+        try! Data().write(to: interrupted.appendingPathComponent("Encoder.mlmodelc/weight.bin.partial"))
+        t.expect(Transcriber.firstComplete([interrupted, second]), second, "a half-finished download is skipped")
+        t.expect(Transcriber.firstComplete([interrupted]), nil, "so it gets downloaded again")
+
+        let nowhere = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        t.expect(Transcriber.firstComplete([nowhere]), nil, "nothing downloaded yet")
     }
 }

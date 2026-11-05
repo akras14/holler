@@ -3,8 +3,8 @@ import Foundation
 
 /// Speech to text with Parakeet TDT v2 (English), run on the Neural Engine by FluidAudio.
 ///
-/// The model lives in FluidAudio's shared cache, `~/Library/Application Support/FluidAudio/Models`,
-/// which FluidVoice uses too, so a Mac that has run FluidVoice with Parakeet v2 downloads nothing.
+/// The model is downloaded to `~/Library/Application Support/Holler/Models`, unless
+/// FluidVoice has already downloaded Parakeet v2, in which case Holler uses that copy.
 public final class Transcriber {
     public static let version = AsrModelVersion.v2
     private let manager = AsrManager(config: .default)
@@ -13,15 +13,16 @@ public final class Transcriber {
     public init() {}
 
     /// Whether the model is already on disk, so loading won't download ~450 MB.
-    public static var isModelDownloaded: Bool { localModelFolder(in: modelsFolder) != nil }
+    public static var isModelDownloaded: Bool { firstComplete(candidateFolders) != nil }
 
     /// Loads the model, downloading it first if there's no copy on disk.
     public func load() async throws {
         let models: AsrModels
-        if let folder = Self.localModelFolder(in: Self.modelsFolder) {
+        if let folder = Self.firstComplete(Self.candidateFolders) {
             models = try AsrModels.loadLocal(from: folder, version: Self.version)
         } else {
-            models = try await AsrModels.downloadAndLoad(version: Self.version)
+            // FluidAudio resumes or replaces a half-finished download here.
+            models = try await AsrModels.downloadAndLoad(to: Self.ownFolder, version: Self.version)
         }
         try await manager.loadModels(models)
         isLoaded = true
@@ -44,24 +45,32 @@ public final class Transcriber {
 }
 
 extension Transcriber {
-    /// FluidAudio's shared models folder.
-    public static var modelsFolder: URL {
-        AsrModels.defaultCacheDirectory(for: version).deletingLastPathComponent()
+    static let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+
+    /// Where Holler downloads the model.
+    static var ownFolder: URL { support.appendingPathComponent("Holler/Models/parakeet-tdt-0.6b-v2") }
+
+    /// Copies to try, in order: Holler's, then FluidVoice's. FluidVoice ships an older
+    /// FluidAudio that names the folder after the Hugging Face repo; newer releases drop
+    /// the `-coreml`. The weights are the same, so any copy saves a 450 MB download.
+    static var candidateFolders: [URL] {
+        let fluidAudio = support.appendingPathComponent("FluidAudio/Models")
+        return [ownFolder,
+                fluidAudio.appendingPathComponent("parakeet-tdt-0.6b-v2-coreml"),
+                fluidAudio.appendingPathComponent("parakeet-tdt-0.6b-v2")]
     }
 
-    /// A complete copy of the model already on disk, if there is one.
-    /// FluidVoice's folder comes first: older FluidAudio releases, which FluidVoice ships,
-    /// name it after the Hugging Face repo, and current ones drop the `-coreml`. The
-    /// weights are the same, so either copy saves a 450 MB download.
-    static func localModelFolder(in models: URL) -> URL? {
+    /// The first folder holding a whole model. An interrupted download leaves every
+    /// folder in place but with `.partial` weights, so those don't count.
+    static func firstComplete(_ folders: [URL]) -> URL? {
         let required = ["Preprocessor.mlmodelc", "Encoder.mlmodelc", "Decoder.mlmodelc",
                         "JointDecision.mlmodelc", "parakeet_vocab.json"]
-        return ["parakeet-tdt-0.6b-v2-coreml", "parakeet-tdt-0.6b-v2"]
-            .map { models.appendingPathComponent($0) }
-            .first { folder in
-                required.allSatisfy {
-                    FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path)
-                }
-            }
+        let files = FileManager.default
+        return folders.first { folder in
+            guard required.allSatisfy({ files.fileExists(atPath: folder.appendingPathComponent($0).path) })
+            else { return false }
+            let contents = files.enumerator(at: folder, includingPropertiesForKeys: nil)
+            return !(contents?.contains { ($0 as? URL)?.pathExtension == "partial" } ?? false)
+        }
     }
 }

@@ -39,8 +39,8 @@ Full Xcode isn't required.
 ```
 
 The model (about 450 MB) is downloaded on first launch into
-`~/Library/Application Support/FluidAudio/Models`. If FluidVoice has already
-downloaded Parakeet v2 there, Holler uses that copy.
+`~/Library/Application Support/Holler/Models`. If FluidVoice has already downloaded
+Parakeet v2, Holler uses its copy instead.
 
 **Signing.** macOS ties the Accessibility grant to the app's signature. An ad-hoc
 signature changes with every build, so the grant would silently stop working after

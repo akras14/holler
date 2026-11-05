@@ -64,3 +64,32 @@ func pushToTalkChecks(_ t: Checker) {
         t.expect(actions(), [.start, .finish], "caps lock on doesn't get in the way")
     }
 }
+
+@MainActor
+func keyMonitorChecks(_ t: Checker) {
+    func flags(_ keyCode: UInt16, _ raw: UInt, at time: TimeInterval) -> NSEvent {
+        NSEvent.keyEvent(with: .flagsChanged, location: .zero, modifierFlags: NSEvent.ModifierFlags(rawValue: raw),
+                         timestamp: time, windowNumber: 0, context: nil, characters: "",
+                         charactersIgnoringModifiers: "", isARepeat: false, keyCode: keyCode)!
+    }
+    func key(at time: TimeInterval) -> NSEvent {
+        NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: NSEvent.ModifierFlags(rawValue: rightOption),
+                         timestamp: time, windowNumber: 0, context: nil, characters: "å",
+                         charactersIgnoringModifiers: "a", isARepeat: false, keyCode: 0)!
+    }
+
+    t.group("Key events") {
+        let ptt = PushToTalk()
+        var actions: [PushToTalk.Action] = []
+        ptt.onAction = { actions.append($0) }
+        let monitor = KeyMonitor(pushToTalk: ptt)
+
+        monitor.handle(flags(61, rightOption, at: 100))
+        monitor.handle(flags(61, 0, at: 101))
+        t.expect(actions, [.start, .finish], "Right Option events from macOS reach push to talk")
+
+        monitor.handle(flags(61, rightOption, at: 102))
+        monitor.handle(key(at: 102.5))
+        t.expect(actions, [.start, .finish, .start, .cancel], "so do key presses")
+    }
+}

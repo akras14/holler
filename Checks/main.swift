@@ -3,8 +3,14 @@ import HollerKit
 
 MainActor.assumeIsolated {
     _ = NSApplication.shared
+    let args = CommandLine.arguments
+    if args.count >= 3, args[1] == "--snapshot-indicator" {
+        snapshotIndicator(to: URL(fileURLWithPath: args[2]))
+        exit(0)
+    }
     let t = Checker()
     pushToTalkChecks(t)
+    keyMonitorChecks(t)
     pasterChecks(t)
     historyChecks(t)
     microphoneChecks(t)

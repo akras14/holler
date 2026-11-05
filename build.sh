@@ -21,9 +21,9 @@ cp LICENSE "$APP/Contents/Resources/"
 
 # Accessibility and Microphone grants are keyed to the signature. An ad-hoc signature
 # changes with every build, so macOS would silently drop the grants after each rebuild.
-# A self-signed code signing certificate keeps them: Gutter's "Gutter Dev" works, or
-# set LOCAL_SIGN_NAME to another one's name.
-LOCAL_SIGN_NAME=${LOCAL_SIGN_NAME:-Gutter Dev}
+# A self-signed code signing certificate named "ak-dev" keeps them (README, Signing).
+# Set LOCAL_SIGN_NAME to use a certificate with another name.
+LOCAL_SIGN_NAME=${LOCAL_SIGN_NAME:-ak-dev}
 LOCAL_ID=$(security find-identity -p codesigning 2>/dev/null \
     | awk -v name="\"$LOCAL_SIGN_NAME\"" 'index($0, name) { print $2; exit }' || true)
 if [ -n "$LOCAL_ID" ]; then
@@ -31,7 +31,7 @@ if [ -n "$LOCAL_ID" ]; then
     echo "Signed with \"$LOCAL_SIGN_NAME\""
 else
     codesign --force --sign - "$APP"
-    echo "Ad-hoc signed: grant Accessibility again after every rebuild"
+    echo "Ad-hoc signed: no \"$LOCAL_SIGN_NAME\" certificate, so grant Accessibility again after every rebuild"
 fi
 echo "Built $APP"
 

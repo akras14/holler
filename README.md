@@ -42,11 +42,25 @@ The model (about 450 MB) is downloaded on first launch into
 `~/Library/Application Support/Holler/Models`. If FluidVoice has already downloaded
 Parakeet v2, Holler uses its copy instead.
 
-**Signing.** macOS ties the Accessibility grant to the app's signature. An ad-hoc
-signature changes with every build, so the grant would silently stop working after
-each rebuild. `build.sh` signs with a self-signed code signing certificate named
-"Gutter Dev" if your keychain has one (set `LOCAL_SIGN_NAME` to use another), which
-keeps grants across rebuilds.
+### Signing
+
+macOS ties the Accessibility and Microphone grants to the app's signature. Without a
+certificate, `build.sh` signs ad-hoc, and that signature changes with every build: the
+grants still show ON in System Settings after a rebuild, but are silently refused.
+
+A self-signed certificate keeps the signature the same from build to build. Create one
+once:
+
+1. Open Keychain Access, then **Keychain Access > Certificate Assistant > Create a Certificate...**
+2. Name it **ak-dev**, set Identity Type to **Self Signed Root** and Certificate Type to
+   **Code Signing**, and click Create.
+
+`build.sh` finds it by name and prints `Signed with "ak-dev"`. The first time, macOS may
+ask whether codesign can use the key: choose Always Allow. To use a certificate you
+already have, pass its name: `LOCAL_SIGN_NAME="My Cert" ./build.sh`.
+
+The same certificate works for [Lightdown](https://github.com/akras14/lightdown). It only
+matters on your own Mac; it doesn't make builds trusted anywhere else.
 
 Run the tests with:
 

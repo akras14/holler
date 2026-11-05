@@ -8,6 +8,8 @@ MainActor.assumeIsolated {
     pasterChecks(t)
     historyChecks(t)
     microphoneChecks(t)
+    indicatorChecks(t)
+    menuChecks(t)
     modelFolderChecks(t)
     let transcriber = Transcriber()
     transcriberChecks(t, transcriber: transcriber)

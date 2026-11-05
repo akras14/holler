@@ -42,6 +42,25 @@ The model (about 450 MB) is downloaded on first launch into
 `~/Library/Application Support/Holler/Models`. If FluidVoice has already downloaded
 Parakeet v2, Holler uses its copy instead.
 
+Run the tests with:
+
+```sh
+swift run HollerChecks
+```
+
+They're a small executable instead of an XCTest target because XCTest doesn't run with
+the Command Line Tools alone. They transcribe speech made with `say` through the real
+model, cut into microphone-sized buffers, and drive the paste, menu and pill offscreen.
+They can't press keys in other apps or use the microphone, so try those by hand.
+
+To look at the recording pill without dictating:
+
+```sh
+swift run HollerChecks --snapshot-indicator pill.png
+```
+
+`swift scripts/make-icon.swift` redraws the app icon.
+
 ### Signing
 
 macOS ties the Accessibility and Microphone grants to the app's signature. Without a
@@ -61,22 +80,3 @@ already have, pass its name: `LOCAL_SIGN_NAME="My Cert" ./build.sh`.
 
 The same certificate works for [Lightdown](https://github.com/akras14/lightdown). It only
 matters on your own Mac; it doesn't make builds trusted anywhere else.
-
-Run the tests with:
-
-```sh
-swift run HollerChecks
-```
-
-They're a small executable instead of an XCTest target because XCTest doesn't run with
-the Command Line Tools alone. They transcribe speech made with `say` through the real
-model, cut into microphone-sized buffers, and drive the paste, menu and pill offscreen.
-They can't press keys in other apps or use the microphone, so try those by hand.
-
-To look at the recording pill without dictating:
-
-```sh
-swift run HollerChecks --snapshot-indicator pill.png
-```
-
-`swift scripts/make-icon.swift` redraws the app icon.

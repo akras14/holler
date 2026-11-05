@@ -1,7 +1,7 @@
 # Holler
 
-A minimal push-to-talk dictation app for macOS. Hold Right Option, talk, let go, and
-the text is pasted wherever your cursor is. It started as a lean replacement for
+A minimal dictation app for macOS. Tap Right Option, talk, tap it again, and the
+text is pasted wherever your cursor is. It started as a lean replacement for
 FluidVoice, keeping just the part that gets used.
 
 Speech recognition is [Parakeet TDT v2](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2)
@@ -10,10 +10,11 @@ Nothing leaves your Mac.
 
 ## Using it
 
-- **Hold Right Option** to record. A small pill at the bottom of the screen shows your
-  voice level. **Let go** and the transcript is pasted into the app you're in.
-- **Taps and shortcuts are ignored.** A press shorter than 0.3 s, or Right Option used as
-  part of a shortcut (⌥-letter for special characters, ⌘⌥…), records nothing.
+- **Tap Right Option** to start recording. A small pill at the bottom of the screen shows
+  your voice level. **Tap it again** and the transcript is pasted into the app you're in.
+- **Esc cancels** a recording without pasting anything. Other keys don't stop it.
+- **Shortcuts are ignored.** Right Option used as part of a shortcut (⌥-letter for special
+  characters, ⌘⌥…) records nothing, and neither does an accidental double tap.
 - **Your clipboard is put back** after the paste, and the dictated text is marked
   transient so clipboard managers skip it.
 - **The menu bar icon** shows the last ten transcripts (click one to copy it again),
@@ -86,8 +87,8 @@ matters on your own Mac; it doesn't make builds trusted anywhere else.
 | Path | What it does |
 |------|--------------|
 | `Sources/HollerKit/App.swift` | App startup: menu bar icon, permissions, wiring the pieces together |
-| `Sources/HollerKit/PushToTalk.swift` | Right Option presses to start, finish or cancel, ignoring taps and shortcuts |
-| `Sources/HollerKit/KeyMonitor.swift` | Key events from every app, passed to push to talk |
+| `Sources/HollerKit/DictationKey.swift` | Right Option taps and Esc to start, finish or cancel, ignoring shortcuts |
+| `Sources/HollerKit/KeyMonitor.swift` | Key events from every app, passed to the dictation key |
 | `Sources/HollerKit/Recorder.swift` | Microphone capture, converted to 16 kHz mono, and the input level |
 | `Sources/HollerKit/Microphones.swift` | The list of input devices |
 | `Sources/HollerKit/Transcriber.swift` | Finding, downloading and running the Parakeet model |

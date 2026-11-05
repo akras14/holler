@@ -9,7 +9,7 @@ MainActor.assumeIsolated {
         exit(0)
     }
     let t = Checker()
-    pushToTalkChecks(t)
+    dictationKeyChecks(t)
     keyMonitorChecks(t)
     pasterChecks(t)
     historyChecks(t)

@@ -45,7 +45,7 @@ func menuChecks(_ t: Checker) {
         menu.model = model
 
         t.expect(titles(menu.menu), [
-            "Hold Right Option to dictate", "—",
+            "Tap Right Option to dictate", "—",
             "Recent", "Short one.", String(repeating: "word ", count: 11).trimmingCharacters(in: .whitespaces) + "…", "—",
             "Microphone", "Launch at Login", "—",
             "Quit Holler",
@@ -99,7 +99,10 @@ func menuChecks(_ t: Checker) {
         menu.model = model
         t.expect(menu.menu.items[0].title, "Couldn't start the microphone", "errors replace the status line")
         model.error = nil
+        model.state = .recording
         menu.model = model
+        t.expect(menu.menu.items[0].title, "Listening: tap Right Option to stop, Esc to cancel",
+                 "says how to stop while recording")
         t.expect(item(menu.menu, "No transcripts yet")?.isEnabled, false)
     }
 

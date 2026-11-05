@@ -38,7 +38,7 @@ public final class Dictation {
         updateState()
     }
 
-    public func handle(_ action: PushToTalk.Action) {
+    public func handle(_ action: DictationKey.Action) {
         guard transcriber.isLoaded else { return }
         switch action {
         case .start:

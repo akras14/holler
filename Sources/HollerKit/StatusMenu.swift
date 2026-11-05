@@ -74,8 +74,8 @@ public final class StatusMenu: NSObject {
         if let error = model.error { return error }
         switch model.state {
         case .loading: return model.downloading ? "Downloading speech model (450 MB)…" : "Loading speech model…"
-        case .ready: return "Hold Right Option to dictate"
-        case .recording: return "Listening…"
+        case .ready: return "Tap Right Option to dictate"
+        case .recording: return "Listening: tap Right Option to stop, Esc to cancel"
         case .transcribing: return "Transcribing…"
         }
     }

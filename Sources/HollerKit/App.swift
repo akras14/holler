@@ -11,8 +11,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     private let recorder = Recorder()
     private let transcriber = Transcriber()
     private let history = History()
-    private let pushToTalk = PushToTalk()
-    private lazy var keyMonitor = KeyMonitor(pushToTalk: pushToTalk)
+    private let dictationKey = DictationKey()
+    private lazy var keyMonitor = KeyMonitor(key: dictationKey)
     private lazy var dictation = Dictation(source: recorder, transcriber: transcriber, paster: Paster(), history: history)
     private var downloading = false
     private var error: String?
@@ -46,7 +46,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
 
         recorder.deviceUID = UserDefaults.standard.string(forKey: Self.microphoneKey)
         recorder.onLevel = { [weak self] in self?.indicator.level($0) }
-        pushToTalk.onAction = { [weak self] in self?.dictation.handle($0) }
+        dictationKey.onAction = { [weak self] in self?.dictation.handle($0) }
         dictation.onStateChange = { [weak self] state in
             if state == .recording { self?.error = nil }
             self?.indicator.update(state)

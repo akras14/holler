@@ -1,14 +1,14 @@
 import AppKit
 
-/// Feeds keyboard events from every app to push to talk.
+/// Feeds keyboard events from every app to the dictation key.
 ///
 /// Global monitors only see key events once Holler has Accessibility permission, and
 /// ones added before it was granted stay deaf, so `start()` is called after the grant.
 public final class KeyMonitor {
-    let pushToTalk: PushToTalk
+    let key: DictationKey
     private var monitors: [Any] = []
 
-    public init(pushToTalk: PushToTalk) { self.pushToTalk = pushToTalk }
+    public init(key: DictationKey) { self.key = key }
 
     public var isRunning: Bool { !monitors.isEmpty }
 
@@ -30,9 +30,9 @@ public final class KeyMonitor {
     func handle(_ event: NSEvent) {
         switch event.type {
         case .flagsChanged:
-            pushToTalk.flagsChanged(keyCode: event.keyCode, flags: event.modifierFlags.rawValue, at: event.timestamp)
+            key.flagsChanged(keyCode: event.keyCode, flags: event.modifierFlags.rawValue, at: event.timestamp)
         case .keyDown:
-            pushToTalk.keyDown(at: event.timestamp)
+            key.keyDown(keyCode: event.keyCode, at: event.timestamp)
         default:
             break
         }

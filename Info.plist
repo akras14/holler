@@ -14,6 +14,6 @@
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
-    <key>NSMicrophoneUsageDescription</key><string>Holler listens while you hold Right Option and turns what you say into text.</string>
+    <key>NSMicrophoneUsageDescription</key><string>Holler listens between two taps of Right Option and turns what you say into text.</string>
 </dict>
 </plist>

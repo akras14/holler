@@ -20,9 +20,8 @@ func words(_ text: String) -> String {
 }
 
 @MainActor
-func transcriberChecks(_ t: Checker) {
+func transcriberChecks(_ t: Checker, transcriber: Transcriber) {
     t.group("Transcriber") {
-        let transcriber = Transcriber()
         let loaded: Void? = finish(timeout: 300) { try await transcriber.load() }
         t.expect(loaded != nil, true, "loads the Parakeet model")
 

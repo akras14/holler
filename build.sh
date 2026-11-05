@@ -37,6 +37,11 @@ echo "Built $APP"
 
 if [ "$1" = "--install" ]; then
     osascript -e 'quit app "Holler"' 2>/dev/null || true
+    # Wait for it to exit, or an `open` right after this fails with error -600.
+    for _ in $(seq 50); do
+        pgrep -qf /Applications/Holler.app/Contents/MacOS/Holler || break
+        sleep 0.1
+    done
     rm -rf /Applications/Holler.app
     cp -R "$APP" /Applications/
     echo "Installed to /Applications/Holler.app"

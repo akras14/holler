@@ -3,6 +3,9 @@ import AppKit
 MainActor.assumeIsolated {
     _ = NSApplication.shared
     let t = Checker()
+    pushToTalkChecks(t)
+    pasterChecks(t)
+    historyChecks(t)
     modelFolderChecks(t)
     transcriberChecks(t)
 

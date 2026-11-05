@@ -52,3 +52,15 @@ func finish<T>(timeout: TimeInterval = 60, _ work: @escaping () async throws -> 
     case .failure(let error): print("    threw: \(error)"); return nil
     }
 }
+
+/// For asserting that nothing changes: checks `condition` throughout `duration` and
+/// returns false as soon as it fails. Don't use it to wait for something to happen.
+@MainActor
+func holds(for duration: TimeInterval, _ condition: () -> Bool) -> Bool {
+    let deadline = Date().addingTimeInterval(duration)
+    while Date() < deadline {
+        guard condition() else { return false }
+        RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.01))
+    }
+    return condition()
+}

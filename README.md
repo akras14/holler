@@ -66,6 +66,13 @@ swift run HollerChecks --snapshot-indicator pill.png
 
 `swift scripts/make-icon.swift` redraws the app icon.
 
+When a dictation goes wrong, the system log shows each Right Option step and what came of
+it (how long the recording was, how loud, whether anything was pasted), never what was said:
+
+```sh
+log show --last 1h --style compact --predicate 'subsystem == "com.alexkras.holler"'
+```
+
 ### Signing
 
 macOS ties the Accessibility and Microphone grants to the app's signature. Without a

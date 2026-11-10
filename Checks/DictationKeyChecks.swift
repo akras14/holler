@@ -103,6 +103,43 @@ func dictationKeyChecks(_ t: Checker) {
         t.expect(actions2(), [.start, .cancel], "so does adding ⌘ to Right Option")
     }
 
+    t.group("Dictation key: log") {
+        let (key, _) = make()
+        var logs: [String] = []
+        key.log = { logs.append($0) }
+        key.flagsChanged(keyCode: 58, flags: leftOption, at: 5)
+        key.flagsChanged(keyCode: 58, flags: 0, at: 5.1)
+        key.keyDown(keyCode: 0, at: 6)
+        t.expect(logs, [], "ordinary typing isn't logged")
+
+        tap(key, at: 10)
+        key.keyDown(keyCode: 0, at: 11)
+        key.flagsChanged(keyCode: 61, flags: rightOption, at: 12.5)
+        key.flagsChanged(keyCode: 61, flags: 0, at: 12.6)
+        t.expect(logs, [
+            "key 61 flags 0x80040: idle → starting, start",
+            "key 61 flags 0x0: starting → recording",
+            "key 61 flags 0x80040: recording → stopping, finish after 2.50 s",
+            "key 61 flags 0x0: stopping → idle",
+        ], "every Right Option step is, with its flags; keys that change nothing aren't")
+
+        logs = []
+        key.flagsChanged(keyCode: 61, flags: rightOption, at: 20)
+        key.keyDown(keyCode: 0, at: 20.1)
+        key.flagsChanged(keyCode: 61, flags: 0, at: 20.2)
+        tap(key, at: 30)
+        tap(key, at: 30.2)
+        t.expect(logs, [
+            "key 61 flags 0x80040: idle → starting, start",
+            "key down 0: starting → idle, cancel",
+            "key 61 flags 0x0: idle → idle",
+            "key 61 flags 0x80040: idle → starting, start",
+            "key 61 flags 0x0: starting → recording",
+            "key 61 flags 0x80040: recording → stopping, cancel after 0.20 s",
+            "key 61 flags 0x0: stopping → idle",
+        ], "and so is what cancels a recording")
+    }
+
     t.group("Dictation key: caps lock") {
         let (key, actions) = make()
         let capsLock = NSEvent.ModifierFlags.capsLock.rawValue

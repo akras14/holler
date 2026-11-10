@@ -14,6 +14,8 @@ public final class DictationKey {
     public var onAction: (Action) -> Void = { _ in }
     /// Recordings shorter than this, such as an accidental double tap, are cancelled.
     public var minimumLength: TimeInterval = 0.3
+    /// Each Right Option event and each key that changes something. Other typing isn't logged.
+    public var log: (String) -> Void = Log.writer("key")
 
     private enum Phase {
         case idle
@@ -22,6 +24,15 @@ public final class DictationKey {
         case recording(since: TimeInterval)
         /// The stopping press, still held: its release is ignored.
         case stopping
+
+        var name: String {
+            switch self {
+            case .idle: "idle"
+            case .starting: "starting"
+            case .recording: "recording"
+            case .stopping: "stopping"
+            }
+        }
     }
     private var phase = Phase.idle
 
@@ -38,24 +49,28 @@ public final class DictationKey {
         let rightOptionDown = flags & Self.rightOptionBit != 0
         let othersDown = flags & Self.otherModifiers != 0
         let rightOptionPressed = keyCode == Self.rightOptionKeyCode && rightOptionDown && !othersDown
+        let before = phase
+        var action: Action?
+        var length = ""
 
         switch phase {
         case .idle:
             if rightOptionPressed {
                 phase = .starting(since: time)
-                onAction(.start)
+                action = .start
             }
         case .starting(let since):
             if othersDown {
                 phase = .idle
-                onAction(.cancel)
+                action = .cancel
             } else if !rightOptionDown {
                 phase = .recording(since: since)
             }
         case .recording(let since):
             if rightOptionPressed {
                 phase = .stopping
-                onAction(time - since < minimumLength ? .cancel : .finish)
+                action = time - since < minimumLength ? .cancel : .finish
+                length = String(format: " after %.2f s", time - since)
             }
         case .stopping:
             if !rightOptionDown {
@@ -63,18 +78,26 @@ public final class DictationKey {
             } else if rightOptionPressed {
                 // The release went missing (secure input can hide it): this is a new start.
                 phase = .starting(since: time)
-                onAction(.start)
+                action = .start
             }
         }
+
+        // Modifiers used while idle are ordinary typing: leave them out.
+        if keyCode == Self.rightOptionKeyCode || before.name != "idle" || phase.name != "idle" {
+            log("key \(keyCode) flags 0x\(String(flags, radix: 16)): \(before.name) → \(phase.name)"
+                + (action.map { ", \($0)\(length)" } ?? ""))
+        }
+        if let action { onAction(action) }
     }
 
     public func keyDown(keyCode: UInt16, at time: TimeInterval) {
+        let before = phase
         switch phase {
-        case .starting:
+        case .starting,
+             .recording where keyCode == Self.escapeKeyCode:
             phase = .idle
-            onAction(.cancel)
-        case .recording where keyCode == Self.escapeKeyCode:
-            phase = .idle
+            // Only keys that cancel are logged, so the log never holds what was typed.
+            log("key down \(keyCode): \(before.name) → idle, cancel")
             onAction(.cancel)
         default:
             break

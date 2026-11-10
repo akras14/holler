@@ -20,7 +20,9 @@ Nothing leaves your Mac.
 - **Transcribe File to Clipboard…** in the menu takes a recording or video (MP3, M4A, WAV,
   MP4, MOV, anything macOS plays) and copies its transcript to the clipboard. When it's done,
   a window says so, shows how it starts, and offers to save it as a text file. Long files
-  are fine: a lecture is read in chunks, and you can keep dictating meanwhile.
+  are fine: a lecture is read in chunks, and you can keep dictating meanwhile. Tick
+  **Include timestamps** in the file picker to get a line per sentence, each starting with
+  when it's said, like `[1:05]`.
 - **The menu bar icon** shows the last five transcripts (click one to copy it again, or clear them),
   lets you pick a microphone, and has Launch at Login.
 

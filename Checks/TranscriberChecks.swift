@@ -28,7 +28,7 @@ func transcriberChecks(_ t: Checker, transcriber: Transcriber) {
         let url = spokenFile("The quick brown fox jumps over the lazy dog.")
         defer { try? FileManager.default.removeItem(at: url) }
         let text = finish { try await transcriber.transcribe(file: url) }
-        t.expect(text.map(words),
+        t.expect(text.map { words($0.text) },
                  "the quick brown fox jumps over the lazy dog", "transcribes spoken English")
 
         let silence = finish { try await transcriber.transcribe([Float](repeating: 0, count: 16_000)) }

@@ -21,6 +21,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     private var permissionTimer: Timer?
 
     static let microphoneKey = "Microphone"
+    static let fileTimestampsKey = "FileTimestamps"
 
     public override init() { super.init() }
 
@@ -114,10 +115,23 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         panel.allowedContentTypes = [.audiovisualContent]
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
+
+        let timestamps = NSButton(checkboxWithTitle: "Include timestamps", target: nil, action: nil)
+        timestamps.state = UserDefaults.standard.bool(forKey: Self.fileTimestampsKey) ? .on : .off
+        timestamps.toolTip = "Put each sentence on its own line, starting with when it's said, like [1:05]."
+        let accessory = NSView(frame: NSRect(x: 0, y: 0, width: timestamps.fittingSize.width + 40,
+                                             height: timestamps.fittingSize.height + 16))
+        timestamps.setFrameOrigin(NSPoint(x: 20, y: 8))
+        accessory.addSubview(timestamps)
+        panel.accessoryView = accessory
+        panel.isAccessoryViewDisclosed = true
+
         // Holler has no windows, so it has to come forward for the panel to get focus.
         NSApp.activate(ignoringOtherApps: true)
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        files.start(url)
+        let withTimestamps = timestamps.state == .on
+        UserDefaults.standard.set(withTimestamps, forKey: Self.fileTimestampsKey)
+        files.start(url, timestamps: withTimestamps)
     }
 
     private func show(_ outcome: FileTranscription.Outcome, for file: URL) {

@@ -25,11 +25,12 @@ public final class FileTranscription {
         self.pasteboard = pasteboard
     }
 
-    public func start(_ url: URL) {
+    /// With `timestamps`, the transcript has a line per sentence, each starting with its time.
+    public func start(_ url: URL, timestamps: Bool = false) {
         guard file == nil, transcriber.isLoaded else { return }
         file = url
         Task { @MainActor in
-            let outcome = await transcribe(url)
+            let outcome = await transcribe(url, timestamps: timestamps)
             if case .copied(let text) = outcome {
                 // A plain copy, not marked transient like a dictation: this one is meant to stay.
                 pasteboard.clearContents()
@@ -40,11 +41,12 @@ public final class FileTranscription {
         }
     }
 
-    private func transcribe(_ url: URL) async -> Outcome {
+    private func transcribe(_ url: URL, timestamps: Bool) async -> Outcome {
         guard (try? AVAudioFile(forReading: url)) != nil else { return .unreadable }
         do {
-            let text = try await transcriber.transcribe(file: url)
-            return text.isEmpty ? .noSpeech : .copied(text)
+            let transcript = try await transcriber.transcribe(file: url)
+            guard !transcript.text.isEmpty else { return .noSpeech }
+            return .copied(timestamps ? transcript.withTimestamps : transcript.text)
         } catch {
             return .failed(error.localizedDescription)
         }
@@ -64,7 +66,7 @@ public final class FileTranscription {
         let name = url.lastPathComponent
         switch outcome {
         case .copied(let text):
-            let count = text.split(whereSeparator: \.isWhitespace).count
+            let count = text.split(whereSeparator: \.isWhitespace).filter { !$0.hasPrefix("[") }.count
             let preview = StatusMenu.shorten(text, to: 200)
             return ("Transcript copied to the clipboard",
                     "\(name): \(count) \(count == 1 ? "word" : "words"). Paste it anywhere, or save it as a text file."

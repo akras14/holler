@@ -30,26 +30,28 @@ public final class Transcriber {
 
     /// Transcribes 16 kHz mono samples.
     public func transcribe(_ samples: [Float]) async throws -> String {
-        // Parakeet needs at least a second of audio; pad short clips with silence.
-        let padded = samples.count < 16_000
-            ? samples + [Float](repeating: 0, count: 16_000 - samples.count) : samples
-        var state = TdtDecoderState.make(decoderLayers: Self.version.decoderLayers)
-        let result = try await manager.transcribe(padded, decoderState: &state)
-        return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        try await transcript(of: samples).text
     }
 
     /// Transcribes the sound in an audio or video file, in any format AVFoundation reads.
     /// The file is read off the main thread, and recordings over 30 seconds are read in
     /// chunks from disk rather than all at once.
-    public func transcribe(file: URL) async throws -> String {
+    public func transcribe(file: URL) async throws -> Transcript {
         var state = TdtDecoderState.make(decoderLayers: Self.version.decoderLayers)
         do {
-            let result = try await manager.transcribe(file, decoderState: &state)
-            return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return Transcript(try await manager.transcribe(file, decoderState: &state))
         } catch ASRError.invalidAudioData {
             // Under 0.3 seconds, which FluidAudio refuses: pad it with silence.
-            return try await transcribe(AudioConverter().resampleAudioFile(file))
+            return try await transcript(of: AudioConverter().resampleAudioFile(file))
         }
+    }
+
+    private func transcript(of samples: [Float]) async throws -> Transcript {
+        // Parakeet needs at least a second of audio; pad short clips with silence.
+        let padded = samples.count < 16_000
+            ? samples + [Float](repeating: 0, count: 16_000 - samples.count) : samples
+        var state = TdtDecoderState.make(decoderLayers: Self.version.decoderLayers)
+        return Transcript(try await manager.transcribe(padded, decoderState: &state))
     }
 }
 

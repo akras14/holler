@@ -81,16 +81,38 @@ func fileTranscriptionChecks(_ t: Checker, transcriber: Transcriber) {
         return (files, board, { outcomes })
     }
 
+    t.group("Timestamps") {
+        typealias T = Transcript.Token
+        let short = Transcript(text: "Hi. Bye", tokens: [T(text: " Hi", start: 5.2), T(text: ".", start: 5.5),
+                                                          T(text: " Bye", start: 70)])
+        t.expect(short.withTimestamps, "[0:05] Hi.\n[1:10] Bye",
+                 "one line per sentence, from when it starts; the last needn't end in a full stop")
+
+        let long = Transcript(text: "", tokens: [
+            T(text: " Hello", start: 0.4), T(text: " there", start: 0.8), T(text: ".", start: 1.1),
+            T(text: " It", start: 65.2), T(text: " costs", start: 65.5), T(text: " 3", start: 66),
+            T(text: ".", start: 66.1), T(text: "5", start: 66.2), T(text: " dollars", start: 66.4),
+            T(text: "?", start: 66.9), T(text: " Yes", start: 3725), T(text: "!", start: 3725.3),
+        ])
+        t.expect(long.withTimestamps, "[0:00:00] Hello there.\n[0:01:05] It costs 3.5 dollars?\n[1:02:05] Yes!",
+                 "hours once the recording is that long, on every line so they line up; 3.5 isn't a sentence end")
+
+        t.expect(Transcript(text: "", tokens: []).withTimestamps, "", "nothing said, nothing to stamp")
+    }
+
     t.group("Transcriber: files") {
         let video = spokenVideo("Please send me the slides after the meeting.")
         defer { try? FileManager.default.removeItem(at: video) }
         let fromVideo = finish { try await transcriber.transcribe(file: video) }
-        t.expect(fromVideo.map(words), "please send me the slides after the meeting", "reads a video's sound track")
+        t.expect(fromVideo.map { words($0.text) }, "please send me the slides after the meeting",
+                 "reads a video's sound track")
+        t.expect(fromVideo.map { words($0.tokens.map(\.text).joined()) }, "please send me the slides after the meeting",
+                 "with the time of each piece")
 
         // FluidAudio refuses anything under 0.3 seconds.
         let blip = silentFile(seconds: 0.2)
         defer { try? FileManager.default.removeItem(at: blip) }
-        t.expect(finish { try await transcriber.transcribe(file: blip) }, "", "a tiny file is padded, not refused")
+        t.expect(finish { try await transcriber.transcribe(file: blip) }?.text, "", "a tiny file is padded, not refused")
 
         // Over 30 seconds, so FluidAudio reads it in chunks from disk.
         let sentences = [
@@ -106,10 +128,26 @@ func fileTranscriptionChecks(_ t: Checker, transcriber: Transcriber) {
         defer { try? FileManager.default.removeItem(at: long) }
         let duration = (try? AVAudioFile(forReading: long)).map { Double($0.length) / $0.fileFormat.sampleRate } ?? 0
         t.expect(duration > 30, true, "the long recording is over 30 seconds (\(duration)s)")
-        let text = finish(timeout: 120) { try await transcriber.transcribe(file: long) }.map(words) ?? ""
+        let transcript = finish(timeout: 120) { try await transcriber.transcribe(file: long) }
+        let text = transcript.map { words($0.text) } ?? ""
         for phrase in ["the library opens", "story time every tuesday", "study rooms can be booked"] {
             t.expect(text.contains(phrase), true, "a long recording comes through whole: \(phrase)")
         }
+
+        // Each line's time, in seconds, from "[m:ss] …".
+        let lines = (transcript?.withTimestamps ?? "").split(separator: "\n")
+        let times = lines.compactMap { line -> Int? in
+            guard line.hasPrefix("["), let close = line.firstIndex(of: "]") else { return nil }
+            let parts = line[line.index(after: line.startIndex)..<close].split(separator: ":").compactMap { Int($0) }
+            return parts.count == 2 ? parts[0] * 60 + parts[1] : nil
+        }
+        t.expect(lines.count, sentences.count, "a timestamped line per sentence: \(lines)")
+        t.expect(times.count, lines.count, "each starting with its time")
+        t.expect(times.first, 0, "the first at the start")
+        t.expect(times == times.sorted() && Set(times).count == times.count, true, "in order: \(times)")
+        t.expect((times.last ?? 0) > 25, true, "times run on across the chunks of a long file: \(times)")
+        t.expect(words(lines.last.map(String.init) ?? "").hasSuffix("study rooms can be booked a week ahead at the front desk or online"),
+                 true, "the last line holds the last sentence")
     }
 
     t.group("File transcription") {
@@ -138,6 +176,24 @@ func fileTranscriptionChecks(_ t: Checker, transcriber: Transcriber) {
                  "kept by clipboard managers: unlike a dictation, this copy is meant to stay")
         t.expect(files.file, nil, "free for the next file")
         t.expect(names, [video.lastPathComponent, nil], "says when it starts and stops")
+    }
+
+    t.group("File transcription: with timestamps") {
+        let (files, board, outcomes) = make(transcriber)
+        let url = spokenFile("The package arrives on Friday. Please sign for it.")
+        defer { try? FileManager.default.removeItem(at: url) }
+        files.start(url, timestamps: true)
+        t.expect(waitUntil(timeout: 30) { !outcomes().isEmpty }, true, "finishes")
+        guard case .copied(let text)? = outcomes().first else {
+            return t.expect(String(describing: outcomes()), "copied", "the transcript is copied")
+        }
+        let lines = text.split(separator: "\n").map(String.init)
+        t.expect(lines.count, 2, "a line per sentence: \(text)")
+        t.expect(lines.first?.hasPrefix("[0:00] "), true, text)
+        t.expect(lines.last?.range(of: #"^\[0:0[1-9]\] "#, options: .regularExpression) != nil, true, text)
+        t.expect(words(text.replacingOccurrences(of: #"\[[0-9:]+\]"#, with: "", options: .regularExpression)),
+                 "the package arrives on friday please sign for it")
+        t.expect(board.string(forType: .string), text, "on the clipboard like that")
     }
 
     t.group("File transcription: nothing to copy") {
@@ -188,6 +244,8 @@ func fileTranscriptionChecks(_ t: Checker, transcriber: Transcriber) {
         t.expect(copied.detail.hasSuffix("word word…”"), true, "with the start of it, to check it's the right one")
         t.expect(FileTranscription.message(for: file, .copied("Hi.")).detail,
                  "interview.m4a: 1 word. Paste it anywhere, or save it as a text file.\n\n“Hi.”")
+        t.expect(FileTranscription.message(for: file, .copied("[0:00] Hi there.\n[0:04] Bye.")).detail
+                     .hasPrefix("interview.m4a: 3 words."), true, "timestamps aren't counted as words")
 
         let none = FileTranscription.message(for: file, .noSpeech)
         t.expect(none.title, "No speech found")

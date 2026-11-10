@@ -17,6 +17,10 @@ Nothing leaves your Mac.
   characters, ⌘⌥…) records nothing, and neither does an accidental double tap.
 - **Your clipboard is put back** after the paste, and the dictated text is marked
   transient so clipboard managers skip it.
+- **Transcribe File to Clipboard…** in the menu takes a recording or video (MP3, M4A, WAV,
+  MP4, MOV, anything macOS plays) and copies its transcript to the clipboard. When it's done,
+  a window says so, shows how it starts, and offers to save it as a text file. Long files
+  are fine: a lecture is read in chunks, and you can keep dictating meanwhile.
 - **The menu bar icon** shows the last five transcripts (click one to copy it again, or clear them),
   lets you pick a microphone, and has Launch at Login.
 

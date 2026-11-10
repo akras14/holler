@@ -38,9 +38,18 @@ public final class Transcriber {
         return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Transcribes an audio file in any format AVFoundation reads.
+    /// Transcribes the sound in an audio or video file, in any format AVFoundation reads.
+    /// The file is read off the main thread, and recordings over 30 seconds are read in
+    /// chunks from disk rather than all at once.
     public func transcribe(file: URL) async throws -> String {
-        try await transcribe(AudioConverter().resampleAudioFile(file))
+        var state = TdtDecoderState.make(decoderLayers: Self.version.decoderLayers)
+        do {
+            let result = try await manager.transcribe(file, decoderState: &state)
+            return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch ASRError.invalidAudioData {
+            // Under 0.3 seconds, which FluidAudio refuses: pad it with silence.
+            return try await transcribe(AudioConverter().resampleAudioFile(file))
+        }
     }
 }
 

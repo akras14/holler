@@ -2,6 +2,7 @@ import AppKit
 import AVFoundation
 import ApplicationServices
 import ServiceManagement
+import UniformTypeIdentifiers
 
 /// Wires the pieces together: menu bar icon, key monitor, microphone, model, pill.
 public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -14,6 +15,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     private let dictationKey = DictationKey()
     private lazy var keyMonitor = KeyMonitor(key: dictationKey)
     private lazy var dictation = Dictation(source: recorder, transcriber: transcriber, paster: Paster(), history: history)
+    private lazy var files = FileTranscription(transcriber: transcriber)
     private var downloading = false
     private var error: String?
     private var permissionTimer: Timer?
@@ -48,6 +50,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             self?.history.clear()
             self?.refresh()
         }
+
+        statusMenu.onTranscribeFile = { [weak self] in self?.chooseFile() }
+        files.onChange = { [weak self] in self?.refresh() }
+        files.onFinish = { [weak self] file, outcome in self?.show(outcome, for: file) }
 
         recorder.deviceUID = UserDefaults.standard.string(forKey: Self.microphoneKey)
         recorder.onLevel = { [weak self] in self?.indicator.level($0) }
@@ -100,6 +106,51 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         }
     }
 
+    private func chooseFile() {
+        let panel = NSOpenPanel()
+        panel.title = "Transcribe File to Clipboard"
+        panel.message = "Choose a recording or video. Its transcript is copied to the clipboard."
+        panel.prompt = "Transcribe"
+        panel.allowedContentTypes = [.audiovisualContent]
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        // Holler has no windows, so it has to come forward for the panel to get focus.
+        NSApp.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        files.start(url)
+    }
+
+    private func show(_ outcome: FileTranscription.Outcome, for file: URL) {
+        let message = FileTranscription.message(for: file, outcome)
+        let alert = NSAlert()
+        alert.messageText = message.title
+        alert.informativeText = message.detail
+        guard case .copied(let text) = outcome else {
+            alert.alertStyle = .warning
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
+            return
+        }
+        alert.addButton(withTitle: "Done")
+        alert.addButton(withTitle: "Save as Text File…")
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertSecondButtonReturn else { return }
+
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = FileTranscription.textFileName(for: file)
+        panel.directoryURL = file.deletingLastPathComponent()
+        panel.allowedContentTypes = [.plainText]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try FileTranscription.save(text, to: url)
+        } catch {
+            let failed = NSAlert(error: error)
+            failed.messageText = "Couldn't save the transcript"
+            failed.informativeText = "\(error.localizedDescription) It's still on the clipboard."
+            failed.runModal()
+        }
+    }
+
     private var missingPermissions: [Permission] {
         var missing: [Permission] = []
         if !AXIsProcessTrusted() { missing.append(.accessibility) }
@@ -114,6 +165,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         model.error = error
         model.missing = missingPermissions
         model.recent = history.items
+        model.transcribingFile = files.file?.lastPathComponent
         model.microphones = Microphones.all()
         model.selectedMicrophone = recorder.deviceUID
         model.launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -122,6 +174,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         let symbol: String
         switch dictation.state {
         case .loading: symbol = "hourglass"
+        case .ready where files.file != nil: symbol = "ellipsis"
         case .ready: symbol = model.missing.isEmpty && error == nil ? "waveform" : "exclamationmark.triangle"
         case .recording: symbol = "mic.fill"
         case .transcribing: symbol = "ellipsis"

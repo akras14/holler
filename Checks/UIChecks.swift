@@ -50,6 +50,7 @@ func menuChecks(_ t: Checker) {
             "Tap Right Option to dictate", "—",
             "Recent", "Short one.", String(repeating: "word ", count: 11).trimmingCharacters(in: .whitespaces) + "…",
             "Clear Recent", "—",
+            "Transcribe File to Clipboard…", "—",
             "Microphone", "Launch at Login", "—",
             "Quit Holler",
         ])
@@ -66,6 +67,33 @@ func menuChecks(_ t: Checker) {
         model.recent = []
         menu.model = model
         t.expect(item(menu.menu, "Clear Recent") == nil, true, "nothing to clear, so no Clear Recent")
+    }
+
+    t.group("Menu: transcribe a file") {
+        let menu = StatusMenu(pasteboard: .general)
+        var asked = 0
+        menu.onTranscribeFile = { asked += 1 }
+        var model = MenuModel()
+        model.state = .ready
+        menu.model = model
+        let title = "Transcribe File to Clipboard…"
+        t.expect(item(menu.menu, title)?.isEnabled, true, "says where the transcript goes")
+        menu.menu.performActionForItem(at: menu.menu.indexOfItem(withTitle: title))
+        t.expect(asked, 1, "asks for a file")
+
+        model.transcribingFile = "Week 3 lecture.mp4"
+        menu.model = model
+        t.expect(menu.menu.items[0].title, "Transcribing Week 3 lecture.mp4…", "the status line names the file")
+        t.expect(item(menu.menu, title)?.isEnabled, false, "one file at a time")
+        model.state = .recording
+        menu.model = model
+        t.expect(menu.menu.items[0].title, "Listening: tap Right Option to stop, Esc to cancel",
+                 "dictating meanwhile still says how to stop")
+
+        model = MenuModel()
+        model.state = .loading
+        menu.model = model
+        t.expect(item(menu.menu, title)?.isEnabled, false, "not until the model is ready")
     }
 
     t.group("Menu: microphone") {

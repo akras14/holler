@@ -9,6 +9,8 @@ public struct MenuModel {
     public var error: String?
     public var missing: [Permission] = []
     public var recent: [String] = []
+    /// The name of the file being transcribed, if any.
+    public var transcribingFile: String?
     public var microphones: [Microphones.Device] = []
     public var selectedMicrophone: String?
     public var launchAtLogin = false
@@ -23,6 +25,7 @@ public final class StatusMenu: NSObject {
     public var onOpenPermission: (Permission) -> Void = { _ in }
     public var onToggleLaunchAtLogin: () -> Void = {}
     public var onClearRecent: () -> Void = {}
+    public var onTranscribeFile: () -> Void = {}
     private let pasteboard: NSPasteboard
 
     public init(pasteboard: NSPasteboard) {
@@ -64,6 +67,13 @@ public final class StatusMenu: NSObject {
         }
         menu.addItem(.separator())
 
+        let transcribeFile = action("Transcribe File to Clipboard…", #selector(transcribeFile))
+        transcribeFile.isEnabled = model.state != .loading && model.transcribingFile == nil
+        transcribeFile.toolTip = "Pick a recording or video. Its transcript is copied to the clipboard, "
+            + "and you can save it as a text file."
+        menu.addItem(transcribeFile)
+        menu.addItem(.separator())
+
         let microphone = NSMenuItem(title: "Microphone", action: nil, keyEquivalent: "")
         microphone.submenu = microphoneMenu()
         menu.addItem(microphone)
@@ -78,9 +88,10 @@ public final class StatusMenu: NSObject {
         if let error = model.error { return error }
         switch model.state {
         case .loading: return model.downloading ? "Downloading speech model (450 MB)…" : "Loading speech model…"
-        case .ready: return "Tap Right Option to dictate"
         case .recording: return "Listening: tap Right Option to stop, Esc to cancel"
-        case .transcribing: return "Transcribing…"
+        case .ready, .transcribing:
+            if let file = model.transcribingFile { return "Transcribing \(file)…" }
+            return model.state == .ready ? "Tap Right Option to dictate" : "Transcribing…"
         }
     }
 
@@ -104,11 +115,11 @@ public final class StatusMenu: NSObject {
         return sub
     }
 
-    /// At most 55 characters, broken between words.
-    static func shorten(_ text: String) -> String {
-        guard text.count > 55 else { return text }
-        var cut = String(text.prefix(55))
-        if text[text.index(text.startIndex, offsetBy: 55)] != " ", let space = cut.lastIndex(of: " ") {
+    /// At most `limit` characters, broken between words.
+    static func shorten(_ text: String, to limit: Int = 55) -> String {
+        guard text.count > limit else { return text }
+        var cut = String(text.prefix(limit))
+        if text[text.index(text.startIndex, offsetBy: limit)] != " ", let space = cut.lastIndex(of: " ") {
             cut = String(cut[..<space])
         }
         return cut.trimmingCharacters(in: .whitespaces) + "…"
@@ -143,4 +154,6 @@ public final class StatusMenu: NSObject {
     @objc private func toggleLaunchAtLogin() { onToggleLaunchAtLogin() }
 
     @objc private func clearRecent() { onClearRecent() }
+
+    @objc private func transcribeFile() { onTranscribeFile() }
 }

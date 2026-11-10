@@ -19,6 +19,7 @@ MainActor.assumeIsolated {
     modelFolderChecks(t)
     let transcriber = Transcriber()
     transcriberChecks(t, transcriber: transcriber)
+    fileTranscriptionChecks(t, transcriber: transcriber)
     recorderChecks(t, transcriber: transcriber)
     dictationChecks(t, transcriber: transcriber)
 
